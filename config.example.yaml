@@ -1,0 +1,127 @@
+# ============================ telegram_morning ==============================
+
+# Message language: "es" (Spanish) or "en" (English)
+language: es
+
+# IANA timezone — handles winter/summer (DST) automatically.
+# Examples: "America/Montevideo", "Europe/Madrid", "America/New_York"
+timezone: "America/Montevideo"
+
+# Local wall-clock time to send (24h "HH:MM"), interpreted in `timezone` above.
+send_time: "07:30"
+
+# The scheduler fires often; the program sends once when local time is within
+# [send_time, send_time + send_window_minutes]. Keep this >= your scheduler
+# interval (and >= expected GitHub Actions delay, so >= 60 for the cloud path).
+send_window_minutes: 60
+
+# Weather location: give a city (auto-geocoded) OR latitude+longitude.
+location:
+  city: "Madrid"          # used if latitude/longitude are omitted
+  # latitude: 40.4168
+  # longitude: -3.7038
+  name: "Madrid"          # friendly name shown in the message (optional)
+
+weather:
+  units: metric           # "metric" (°C, km/h) or "imperial" (°F, mph)
+
+# --------------------------------- LLM -------------------------------------
+# Both LOCAL (Ollama) and CLOUD providers use the same OpenAI-compatible API.
+# Pick the active one with `provider`. Optionally set `fallback_provider`
+# (tried automatically if the primary errors). Cloud keys live in .env and are
+# referenced by name via `api_key_env`.
+llm:
+  provider: ollama              # active provider (a key under `providers`)
+  fallback_provider: null       # e.g. "groq" to fall back when Ollama is off
+  temperature: 0.9
+  max_tokens: 300
+  timeout_seconds: 60
+  providers:
+    ollama:
+      base_url: "http://localhost:11434/v1"
+      model: "llama3.2"
+      api_key_env: null         # local Ollama needs no key
+    groq:
+      base_url: "https://api.groq.com/openai/v1"
+      model: "llama-3.3-70b-versatile"
+      api_key_env: GROQ_API_KEY
+    openai:
+      base_url: "https://api.openai.com/v1"
+      model: "gpt-4o-mini"
+      api_key_env: OPENAI_API_KEY
+    openrouter:
+      base_url: "https://openrouter.ai/api/v1"
+      model: "meta-llama/llama-3.1-8b-instruct"
+      api_key_env: OPENROUTER_API_KEY
+
+telegram:
+  parse_mode: "none"            # "none" (safest), "HTML", or "Markdown"
+  disable_notification: false
+
+message:
+  include_emoji: true
+  max_chars: 800
+  show_character_name: true     # prepend e.g. "🏴‍☠️ Pirate" above the message
+
+# How to choose the character each day:
+#   "random"     -> a random one from the roster below, every day
+#   "sequential" -> rotate through the roster in order, one per day
+#   "fixed"      -> always the one named in `character` below
+character_selection: random
+
+# Only used when character_selection is "fixed". Must be an `id` from the roster.
+character: pirate
+
+# The character roster. Each has an id, an emoji, and a persona in BOTH languages.
+# Fully editable — add, remove, or rewrite personas freely.
+characters:
+  - id: pirate
+    emoji: "🏴‍☠️"
+    persona:
+      en: "a boisterous pirate who describes the weather like conditions on the high seas, using 'arr' and nautical slang"
+      es: "un pirata escandaloso que describe el clima como si fueran las condiciones en alta mar, usando '¡arr!' y jerga náutica"
+  - id: detective
+    emoji: "🕵️"
+    persona:
+      en: "a hard-boiled noir detective who treats today's weather like a case to crack"
+      es: "un detective de novela negra que trata el clima de hoy como un caso por resolver"
+  - id: scientist
+    emoji: "🔬"
+    persona:
+      en: "an excitable scientist who explains the weather with precise, nerdy enthusiasm"
+      es: "una cientifica entusiasta que explica el clima con precision y emocion friki"
+  - id: cheerful
+    emoji: "😄"
+    persona:
+      en: "a relentlessly cheerful optimist who finds delight in any forecast"
+      es: "una optimista incansablemente alegre que encuentra encanto en cualquier pronostico"
+  - id: grumpy
+    emoji: "😠"
+    persona:
+      en: "a grumpy curmudgeon who complains about the weather no matter what it is"
+      es: "un cascarrabias grunon que se queja del clima sin importar como sea"
+  - id: poet
+    emoji: "🪶"
+    persona:
+      en: "a romantic poet who renders the forecast as a short lyrical verse"
+      es: "un poeta romantico que convierte el pronostico en un breve verso lirico"
+  - id: robot
+    emoji: "🤖"
+    persona:
+      en: "a deadpan robot reporting weather as clipped system diagnostics"
+      es: "un robot inexpresivo que reporta el clima como diagnosticos de sistema"
+  - id: cowboy
+    emoji: "🤠"
+    persona:
+      en: "a laid-back cowboy drawling about the sky over the prairie"
+      es: "un vaquero relajado que habla con acento sobre el cielo de la pradera"
+  - id: caveman
+    emoji: "🪨"
+    persona:
+      en: "a caveman with a very limited vocabulary who grunts short, simple words about the weather"
+      es: "un cavernicola con vocabulario muy limitado que grune palabras cortas y simples sobre el clima"
+  - id: surfer
+    emoji: "🏄"
+    persona:
+      en: "a chill surfer rating the day by vibes and whether it's gnarly out there"
+      es: "un surfista relajado que evalua el dia por las buenas ondas y si esta bravo el clima"

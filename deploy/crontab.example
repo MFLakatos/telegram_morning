@@ -1,0 +1,2 @@
+# Run every 30 minutes; the program decides if it's actually time to send.
+*/30 * * * * /Users/matiasfernandezlakatos/Desktop/gh_repos/telegram_morning/run.sh >> /Users/matiasfernandezlakatos/Desktop/gh_repos/telegram_morning/state/cron.log 2>&1

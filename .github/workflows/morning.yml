@@ -1,0 +1,51 @@
+name: telegram-morning
+
+on:
+  schedule:
+    # Wakes up twice an hour. GitHub cron is in UTC, but that doesn't matter:
+    # the program checks the local time in config.yaml's `timezone` (DST-safe)
+    # and only sends inside [send_time, send_time + send_window_minutes].
+    # Minutes 7 and 37 avoid GitHub's busy top-of-the-hour slot, which can
+    # delay runs. Keep send_window_minutes >= 60.
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Send a message right now (ignores the time window)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: telegram-morning
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      # Persist the once-per-day guard (state/last_sent.json) across runs.
+      - uses: actions/cache@v4
+        with:
+          path: state
+          key: telegram-morning-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: telegram-morning-state-
+
+      - run: pipx install poetry
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: poetry
+
+      - run: poetry install --only main --no-root
+
+      - run: poetry run python -m telegram_morning.main ${{ inputs.force && '--force' || '' }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}

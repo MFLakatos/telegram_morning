@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "telegram-morning"
+version = "1.0.0"
+description = "Daily Telegram weather message in a random character's voice (ES/EN)."
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{ include = "telegram_morning" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.31"
+PyYAML = "^6.0"
+python-dotenv = "^1.0"
+tzdata = ">=2024.1"   # timezone rules; keep current so DST changes are known
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+
+[tool.poetry.scripts]
+telegram-morning = "telegram_morning.main:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry-core"

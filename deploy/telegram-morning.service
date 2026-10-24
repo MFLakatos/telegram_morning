@@ -1,0 +1,10 @@
+[Unit]
+Description=Telegram morning weather bot (one-shot)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=YOURUSER
+Environment=HOME=/home/YOURUSER
+WorkingDirectory=/ABS/PATH/TO/telegram_morning
+ExecStart=/ABS/PATH/TO/telegram_morning/run.sh

@@ -1,0 +1,13 @@
+# secrets
+.env
+
+# runtime state
+state/*.json
+state/*.log
+
+# python / poetry
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+dist/
