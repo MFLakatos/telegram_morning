@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from telegram_morning import characters, config, llm, scheduler
+from telegram_morning import characters, config, llm, main, scheduler, weather
 
 UTC = ZoneInfo("UTC")
 
@@ -152,7 +152,7 @@ def test_extra_params_are_sent_and_content_returned(tmp_path, monkeypatch):
         return _Resp(200, {"choices": [{"message": {"content": " Arr! ", "reasoning": "..."}}]})
 
     monkeypatch.setattr(llm.requests, "post", fake_post)
-    assert llm.generate_message(c, c["characters"][0], _weather()) == "Arr!"
+    assert llm.generate_message(c, c["characters"][0], _weather()) == ("Arr!", True)
     assert sent["reasoning_effort"] == "low"
 
 
@@ -165,5 +165,46 @@ def test_retired_model_or_empty_reply_falls_back(tmp_path, monkeypatch):
     ])
     monkeypatch.setattr(llm.requests, "post", lambda *a, **k: next(replies))
     for _ in range(2):
-        msg = llm.generate_message(c, c["characters"][0], _weather())
+        msg, used_llm = llm.generate_message(c, c["characters"][0], _weather())
+        assert used_llm is False
         assert msg.startswith("¡Buenos dias!") and "RuntimeError" in msg
+
+
+def test_twist_chance_zero_and_one(tmp_path):
+    c = _cfg(tmp_path)
+    c["surprise"] = {"twist_chance": 0, "twists": ["sneeze"]}
+    assert characters.pick_twist(c) is None
+    c["surprise"]["twist_chance"] = 1
+    assert characters.pick_twist(c) == "sneeze"
+    assert "sneeze" in llm._build_messages(c, c["characters"][0], _weather(), "sneeze")[0]["content"]
+
+
+def test_validate_rejects_bad_twist_chance(tmp_path):
+    c = _cfg(tmp_path)
+    c["surprise"] = {"twist_chance": 5, "twists": ["x"]}
+    with pytest.raises(ValueError, match="twist_chance"):
+        config._validate(c)
+
+
+def test_label_uses_display_name_and_footer_only_with_llm(tmp_path):
+    c = _cfg(tmp_path)
+    c["message"].update({"show_character_name": True, "append_forecast": True})
+    ch = {"id": "quijote", "emoji": "Q", "name": {"es": "Don Quijote", "en": "Don Quixote"},
+          "persona": {"es": "x", "en": "y"}}
+    out = main._decorate(c, ch, "¡Gigantes!", _weather(), used_llm=True)
+    assert out.startswith("Q Don Quijote\n\n¡Gigantes!")
+    assert out.endswith(weather.format_summary(c, _weather()))
+    assert "lluvia 75%" in out
+    plain = main._decorate(c, ch, "fallback text", _weather(), used_llm=False)
+    assert "lluvia 75%" not in plain
+
+
+def test_every_roster_character_is_complete():
+    import yaml
+    from pathlib import Path
+    cfg = yaml.safe_load((Path(__file__).resolve().parents[1] / "config.yaml").read_text(encoding="utf-8"))
+    ids = [ch["id"] for ch in cfg["characters"]]
+    assert len(ids) == len(set(ids))
+    for ch in cfg["characters"]:
+        assert ch["emoji"] and ch["name"]["es"] and ch["name"]["en"]
+        assert ch["persona"]["es"] and ch["persona"]["en"]

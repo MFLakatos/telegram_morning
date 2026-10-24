@@ -87,3 +87,13 @@ def get_weather(cfg: dict) -> dict:
         "temp_unit": "°C" if units == "metric" else "°F",
         "wind_unit": "km/h" if units == "metric" else "mph",
     }
+
+
+def format_summary(cfg: dict, w: dict) -> str:
+    """One line with the real numbers, e.g. for the end of the message."""
+    rain, wind = ("lluvia", "viento") if cfg.get("language") == "es" else ("rain", "wind")
+    return (
+        f"{w['emoji']} {w['location_name']}: {w['description']} · "
+        f"{w['temp_min']}–{w['temp_max']}{w['temp_unit']} · "
+        f"{rain} {w['precip_prob']}% · {wind} {w['wind_max']} {w['wind_unit']}"
+    )

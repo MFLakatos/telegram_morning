@@ -1,7 +1,7 @@
 # telegram_morning
 
 Every morning at the time you choose, you get a Telegram message about today's weather, written in
-the voice of a character (pirate, detective, scientist, grumpy, caveman, …) — either one you pick
+the voice of one of 38 characters (Don Quijote, a pirate, a fat-thumbed texter, a vampire, a Uruguayan grandma, …) — either one you pick
 or a random one each day. Spanish or English. Everything is set in `config.yaml`; secrets live in
 `.env`.
 
@@ -72,10 +72,13 @@ All settings live in `config.yaml`; secrets live in `.env` (locally) and GitHub 
 | `llm.fallback_provider` | tried if the primary fails (or `null`) |
 | `llm.providers.<name>` | `base_url`, `model`, `api_key_env` per provider |
 | `telegram.parse_mode` | `none` (safest), `HTML`, or `Markdown` |
-| `message.show_character_name` | prepend the character label, e.g. "🏴‍☠️ Pirate" |
+| `message.show_character_name` | prepend the character label, e.g. "🛡️ Don Quijote" |
+| `message.append_forecast` | add one line with the real numbers at the end (handy when the character gets them wrong) |
 | `character_selection` | `random`, `sequential`, or `fixed` |
 | `character` | the character id used when `character_selection: fixed` |
-| `characters` | roster; each has `id`, `emoji`, `persona.en`, `persona.es` |
+| `surprise.twist_chance` | chance (0–1) that a random twist is added to the day's character |
+| `surprise.twists` | the twist list, e.g. "You have a terrible cold and sneeze mid-word." |
+| `characters` | roster; each has `id`, `emoji`, `name.es`/`name.en` (optional label), `persona.en`, `persona.es` |
 
 ### Always the same character
 ```yaml
@@ -113,7 +116,10 @@ messages.
 The machine must be awake at send time.
 
 ## Modify & extend
-- **Add a character:** add an entry under `characters` with `id`, `emoji`, `persona.en`, `persona.es`.
+- **Add a character:** add an entry under `characters` with `id`, `emoji`, `name`, `persona.en`, `persona.es`.
+  Describe *how* they talk (mistakes, slang, obsessions), not just who they are. Preview it with
+  `make dry CHARACTER=<id>`.
+- **Add a twist:** add a line under `surprise.twists`. Set `twist_chance: 0` to turn twists off.
 - **Change send time / zone / city:** edit `send_time`, `timezone`, `location`.
 - **Add an LLM provider:** add an entry under `llm.providers` (`base_url`, `model`, `api_key_env`),
   put the key in `.env` (and GitHub secrets + the workflow's `env:` list), point `llm.provider` at it.

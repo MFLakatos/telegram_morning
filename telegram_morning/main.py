@@ -8,10 +8,14 @@ from . import config as config_mod
 from . import weather as weather_mod
 
 
-def _decorate(cfg: dict, character: dict, message: str) -> str:
-    if (cfg.get("message") or {}).get("show_character_name", False):
-        label = f"{character.get('emoji', '')} {character['id'].replace('_', ' ').title()}".strip()
-        return f"{label}\n\n{message}"
+def _decorate(cfg: dict, character: dict, message: str, weather: dict, used_llm: bool) -> str:
+    msg_cfg = cfg.get("message") or {}
+    if msg_cfg.get("show_character_name", False):
+        label = f"{character.get('emoji', '')} {characters.display_name(cfg, character)}".strip()
+        message = f"{label}\n\n{message}"
+    # The templated fallback already contains the numbers; don't repeat them.
+    if msg_cfg.get("append_forecast", False) and used_llm:
+        message = f"{message}\n\n{weather_mod.format_summary(cfg, weather)}"
     return message
 
 
@@ -35,9 +39,11 @@ def run(force=False, dry_run=False, check_only=False, config_path=None, characte
         if character_id
         else characters.pick_character(cfg)
     )
-    message = _decorate(cfg, character, llm.generate_message(cfg, character, weather))
+    twist = characters.pick_twist(cfg)
+    text, used_llm = llm.generate_message(cfg, character, weather, twist)
+    message = _decorate(cfg, character, text, weather, used_llm)
 
-    print(f"[character={character['id']}]\n{message}\n")
+    print(f"[character={character['id']}] [twist={twist or 'none'}]\n{message}\n")
 
     if dry_run:
         print("(dry-run: not sending, not marking state)")

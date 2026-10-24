@@ -63,11 +63,26 @@ def _validate(cfg: dict) -> None:
     if not chars:
         raise ValueError("config.characters must have at least one character")
 
+    ids = [c.get("id") for c in chars]
+    if any(not i for i in ids) or len(ids) != len(set(ids)):
+        raise ValueError("every character needs a unique `id`")
+    for c in chars:
+        persona = c.get("persona") or {}
+        if not persona.get(cfg["language"]):
+            raise ValueError(f"character '{c.get('id')}' has no persona.{cfg['language']}")
+
+    surprise = cfg.get("surprise") or {}
+    try:
+        chance = float(surprise.get("twist_chance", 0) or 0)
+    except (TypeError, ValueError):
+        chance = -1
+    if not 0 <= chance <= 1:
+        raise ValueError("config.surprise.twist_chance must be a number between 0 and 1")
+
     strategy = cfg.get("character_selection", "random")
     if strategy not in CHARACTER_STRATEGIES:
         raise ValueError(f"config.character_selection must be one of {CHARACTER_STRATEGIES}")
     if strategy == "fixed":
-        ids = [c.get("id") for c in chars]
         if cfg.get("character") not in ids:
             raise ValueError(
                 f"config.character '{cfg.get('character')}' is not in the roster. "

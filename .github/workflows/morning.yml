@@ -23,6 +23,10 @@ on:
         description: "Send a message right now (ignores the time window)"
         type: boolean
         default: true
+      character:
+        description: "Character id for this run, e.g. quijote (empty = usual pick)"
+        type: string
+        default: ""
 
 concurrency:
   group: telegram-morning
@@ -51,8 +55,9 @@ jobs:
 
       - run: poetry install --only main --no-root
 
-      - run: poetry run python -m telegram_morning.main ${{ inputs.force && '--force' || '' }}
+      - run: poetry run python -m telegram_morning.main ${{ inputs.force && '--force' || '' }} ${CHARACTER:+--character "$CHARACTER"}
         env:
+          CHARACTER: ${{ inputs.character }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}

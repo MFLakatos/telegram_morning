@@ -6,7 +6,7 @@ import sys
 import requests
 
 
-def _build_messages(cfg: dict, character: dict, weather: dict) -> list[dict]:
+def _build_messages(cfg: dict, character: dict, weather: dict, twist: str | None = None) -> list[dict]:
     lang = cfg["language"]
     persona = character["persona"][lang]
     lang_name = "Spanish" if lang == "es" else "English"
@@ -22,6 +22,8 @@ def _build_messages(cfg: dict, character: dict, weather: dict) -> list[dict]:
         + ("Use a few fitting emojis. " if include_emoji else "Do not use any emojis. ")
         + "Do not mention that you are playing a character; just speak as them."
     )
+    if twist:
+        system += f" Today's twist (stay in character while doing this): {twist}"
 
     w = weather
     if lang == "es":
@@ -88,23 +90,27 @@ def _call_provider(cfg: dict, name: str, messages: list[dict]) -> str:
     return content
 
 
-def generate_message(cfg: dict, character: dict, weather: dict) -> str:
-    """Try the primary provider, then the fallback, then a templated message."""
+def generate_message(cfg: dict, character: dict, weather: dict,
+                     twist: str | None = None) -> tuple[str, bool]:
+    """Try the primary provider, then the fallback, then a templated message.
+
+    Returns (text, used_llm). used_llm is False when the templated message was used.
+    """
     llm_cfg = cfg.get("llm") or {}
     order = [llm_cfg.get("provider", "ollama")]
     fb = llm_cfg.get("fallback_provider")
     if fb and fb not in order:
         order.append(fb)
 
-    messages = _build_messages(cfg, character, weather)
+    messages = _build_messages(cfg, character, weather, twist)
     last_err: Exception | None = None
     for name in order:
         try:
-            return _call_provider(cfg, name, messages)
+            return _call_provider(cfg, name, messages), True
         except Exception as err:  # network down, model missing, bad key, etc.
             print(f"[llm] provider '{name}' failed: {type(err).__name__}: {err}", file=sys.stderr)
             last_err = err
-    return _fallback_message(cfg, character, weather, last_err)
+    return _fallback_message(cfg, character, weather, last_err), False
 
 
 def _fallback_message(cfg: dict, character: dict, weather: dict, err) -> str:
