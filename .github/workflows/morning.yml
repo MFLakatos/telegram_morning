@@ -33,10 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Persist the once-per-day guard (state/last_sent.json) across runs.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: state
           key: telegram-morning-state-${{ github.run_id }}-${{ github.run_attempt }}
@@ -44,7 +44,7 @@ jobs:
 
       - run: pipx install poetry
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: poetry

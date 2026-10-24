@@ -34,7 +34,7 @@ llm:
   provider: ollama              # active provider (a key under `providers`)
   fallback_provider: null       # e.g. "groq" to fall back when Ollama is off
   temperature: 0.9
-  max_tokens: 300
+  max_tokens: 1000              # room for "thinking" models (gpt-oss) plus the message
   timeout_seconds: 60
   providers:
     ollama:
@@ -43,8 +43,12 @@ llm:
       api_key_env: null         # local Ollama needs no key
     groq:
       base_url: "https://api.groq.com/openai/v1"
-      model: "llama-3.3-70b-versatile"
+      # Llama models left Groq's free tier on 2026-08-16. Current free options:
+      # https://console.groq.com/docs/models
+      model: "openai/gpt-oss-120b"
       api_key_env: GROQ_API_KEY
+      extra_params:             # optional on any provider; sent as-is to the API
+        reasoning_effort: low   # gpt-oss "thinks" before answering; keep it short
     openai:
       base_url: "https://api.openai.com/v1"
       model: "gpt-4o-mini"

@@ -70,6 +70,8 @@ def _call_provider(cfg: dict, name: str, messages: list[dict]) -> str:
         "max_tokens": llm_cfg.get("max_tokens", 300),
         "stream": False,
     }
+    # Provider-specific extras from config, e.g. {"reasoning_effort": "low"}.
+    payload.update((llm_cfg.get("providers") or {}).get(name, {}).get("extra_params") or {})
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     r = requests.post(
         f"{base_url}/chat/completions",
@@ -77,8 +79,13 @@ def _call_provider(cfg: dict, name: str, messages: list[dict]) -> str:
         headers=headers,
         timeout=llm_cfg.get("timeout_seconds", 60),
     )
-    r.raise_for_status()
-    return r.json()["choices"][0]["message"]["content"].strip()
+    if not r.ok:
+        # Include the provider's explanation (e.g. "model ... does not exist").
+        raise RuntimeError(f"HTTP {r.status_code} from {name} ({model}): {r.text[:300]}")
+    content = (r.json()["choices"][0]["message"].get("content") or "").strip()
+    if not content:
+        raise RuntimeError(f"{name} ({model}) returned an empty message; try a higher llm.max_tokens")
+    return content
 
 
 def generate_message(cfg: dict, character: dict, weather: dict) -> str:

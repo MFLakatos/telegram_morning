@@ -125,3 +125,45 @@ def test_real_config_yaml_is_valid(monkeypatch):
     monkeypatch.setenv("TELEGRAM_CHAT_ID", os.environ.get("TELEGRAM_CHAT_ID") or "1")
     cfg = config.get_config()
     assert characters.pick_character(cfg)["id"]
+
+
+class _Resp:
+    def __init__(self, status, data):
+        self.status_code, self.ok, self._d, self.text = status, status < 400, data, str(data)
+
+    def json(self):
+        return self._d
+
+
+def _weather():
+    return {"location_name": "Montevideo", "description": "llovizna", "emoji": "W",
+            "temp_max": 16, "temp_min": 13, "precip_prob": 75, "wind_max": 20,
+            "temp_unit": "C", "wind_unit": "kmh"}
+
+
+def test_extra_params_are_sent_and_content_returned(tmp_path, monkeypatch):
+    c = _cfg(tmp_path)
+    c["llm"]["provider"] = "groq"
+    c["llm"]["providers"]["groq"]["extra_params"] = {"reasoning_effort": "low"}
+    sent = {}
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        sent.update(json)
+        return _Resp(200, {"choices": [{"message": {"content": " Arr! ", "reasoning": "..."}}]})
+
+    monkeypatch.setattr(llm.requests, "post", fake_post)
+    assert llm.generate_message(c, c["characters"][0], _weather()) == "Arr!"
+    assert sent["reasoning_effort"] == "low"
+
+
+def test_retired_model_or_empty_reply_falls_back(tmp_path, monkeypatch):
+    c = _cfg(tmp_path)
+    c["llm"]["provider"] = "groq"
+    replies = iter([
+        _Resp(404, {"error": {"message": "The model does not exist"}}),
+        _Resp(200, {"choices": [{"message": {"content": ""}}]}),
+    ])
+    monkeypatch.setattr(llm.requests, "post", lambda *a, **k: next(replies))
+    for _ in range(2):
+        msg = llm.generate_message(c, c["characters"][0], _weather())
+        assert msg.startswith("¡Buenos dias!") and "RuntimeError" in msg
