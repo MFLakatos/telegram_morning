@@ -8,6 +8,15 @@ on:
     # Minutes 7 and 37 avoid GitHub's busy top-of-the-hour slot, which can
     # delay runs. Keep send_window_minutes >= 60.
     - cron: "7,37 * * * *"
+  push:
+    # Also run when the bot or its config changes. Outside the morning window
+    # this just checks the time and exits; it never sends twice in one day.
+    branches: [master, main]
+    paths:
+      - ".github/workflows/morning.yml"
+      - "config.yaml"
+      - "telegram_morning/**"
+      - "poetry.lock"
   workflow_dispatch:
     inputs:
       force:

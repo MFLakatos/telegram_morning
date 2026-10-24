@@ -86,4 +86,7 @@ def _validate(cfg: dict) -> None:
 
     s = cfg["_secrets"]
     if not s["telegram_bot_token"] or not s["telegram_chat_id"]:
-        raise ValueError("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be set in .env")
+        raise ValueError(
+            "TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be set "
+            "(in .env when running locally, or as GitHub Actions secrets)"
+        )
