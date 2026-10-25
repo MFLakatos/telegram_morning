@@ -19,7 +19,7 @@ run on your own machine with a local model (Ollama) if you prefer.
 - [FAQ](#faq)
 
 ## How it works
-GitHub Actions wakes the program up every 2 hours. Each run checks the wall-clock time in your
+GitHub Actions wakes the program up at 07:05 and 09:05. Each run checks the wall-clock time in your
 configured IANA timezone (winter/summer time handled automatically by Python's `zoneinfo`). If it's
 within `[send_time, send_time + send_window_minutes]` and nothing was sent today, it fetches today's
 weather (Open-Meteo, free, no key), picks the character, asks the LLM to write the message in that
@@ -54,18 +54,21 @@ scheduler tick ─► should_send_now()? ─no─► exit
    `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GROQ_API_KEY`.
 5. **Test it:** repo → *Actions* → *telegram-morning* → *Run workflow*, tick *Send a message right
    now*. A message should arrive within a minute.
-From then on GitHub runs it every 2 hours and it sends the first time it runs inside your window
-(default 04:00–10:00 local).
+From then on GitHub runs it at 07:05 and 09:05 (Montevideo) and it sends the first time it runs
+inside your window (default 07:00–11:00 local).
 
 ### Timing
-- `.github/workflows/morning.yml` runs at :17 past every even UTC hour (12 runs a day ≈ 360 of the
-  2,000 free Actions minutes a month on a private repo).
+- `.github/workflows/morning.yml` runs at 10:05 and 12:05 UTC (`cron: "5 10,12 * * *"`), i.e. 07:05
+  and 09:05 in Montevideo. 2 runs a day ≈ 60 of the 2,000 free Actions minutes a month on a private
+  repo. If the 07:05 run already sent, the 09:05 run stops in seconds without sending. Cron hours are always UTC: convert from your timezone, and for a zone with
+  daylight saving add an hour on each side. `make test` fails if they stop overlapping your window.
 - `send_time` + `send_window_minutes` in `config.yaml` set the local window; the first run inside it
-  sends, later runs that day skip. With the defaults (04:00 + 360) runs land at 05:17, 07:17 and
-  09:17 in Montevideo, so the message usually arrives around 05:20.
-- GitHub can delay scheduled runs or skip some. The wide window gives it three chances a day.
+  sends, later runs that day skip. With the defaults (07:00 + 240) the message usually arrives
+  a few minutes after 07:05.
+- GitHub can delay scheduled runs or skip some. The 09:05 run is the backup; if GitHub skips both,
+  no message that day.
 - If GitHub keeps missing whole mornings, start the workflow from an outside timer instead
-  (e.g. cron-job.org every 2 hours, `POST https://api.github.com/repos/<you>/telegram_morning/actions/workflows/morning.yml/dispatches`
+  (e.g. cron-job.org at the same hours, `POST https://api.github.com/repos/<you>/telegram_morning/actions/workflows/morning.yml/dispatches`
   with body `{"ref":"master"}`, headers `Authorization: Bearer <fine-grained token with Actions: write>`,
   `Accept: application/vnd.github+json`).
 
@@ -77,7 +80,7 @@ All settings live in `config.yaml`; secrets live in `.env` (locally) and GitHub 
 | `language` | `es` or `en` |
 | `timezone` | IANA name, e.g. `America/Montevideo` (DST automatic) |
 | `send_time` | local `HH:MM` when the send window opens |
-| `send_window_minutes` | how long the window stays open (keep ≥ 240 with the 2-hour schedule) |
+| `send_window_minutes` | how long the window stays open (keep at least two scheduled runs inside it) |
 | `location.city` / `latitude`+`longitude` | where to get weather |
 | `weather.units` | `metric` or `imperial` |
 | `llm.provider` | active provider key (`groq`, `openai`, `openrouter`, `ollama`) |
@@ -152,7 +155,7 @@ The machine must be awake at send time.
 ## FAQ
 **Does my computer need to be on?** Not with GitHub Actions + a cloud provider (the default).
 **Is it free?** Open-Meteo and Groq's free tier are free. GitHub Actions is free for public repos;
-private repos get 2,000 minutes/month and this uses roughly 360 (12 short runs a day).
+private repos get 2,000 minutes/month and this uses roughly 60 (2 short runs a day).
 **Will it send twice?** No — `state/last_sent.json` (kept in the Actions cache on GitHub) enforces
 one message per local day.
 **Does winter/summer time matter?** No. `send_time` is always local wall-clock time in `timezone`.

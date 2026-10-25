@@ -8,21 +8,21 @@ language: es
 timezone: "America/Montevideo"
 
 # Start of the send window, local wall-clock time (24h "HH:MM") in `timezone`.
-send_time: "04:00"
+send_time: "07:00"
 
-# GitHub wakes the program every 2 hours (at :17 past even UTC hours, i.e.
-# 05:17, 07:17, 09:17 in Montevideo). The first run inside
-# [send_time, send_time + send_window_minutes] sends; later ones that day skip.
-# 04:00 + 360 min = sends between 04:00 and 10:00. Keep the window >= 240 so a
-# skipped or late GitHub run still leaves another chance.
-send_window_minutes: 360
+# GitHub wakes the program at 07:05 and 09:05 Montevideo time (the `cron:`
+# line in .github/workflows/morning.yml, written in UTC). The first run inside
+# [send_time, send_time + send_window_minutes] sends; the 09:05 one then skips.
+# 07:00 + 240 min = may send until 11:00, so a late GitHub run still counts.
+# If you change the window, keep both runs inside it (or edit the cron hours).
+send_window_minutes: 240
 
 # Weather location: give a city (auto-geocoded) OR latitude+longitude.
 location:
-  city: "Madrid"          # used if latitude/longitude are omitted
-  # latitude: 40.4168
-  # longitude: -3.7038
-  name: "Madrid"          # friendly name shown in the message (optional)
+  city: "Montevideo"      # used if latitude/longitude are omitted
+  # latitude: -34.9011
+  # longitude: -56.1645
+  name: "Montevideo"      # friendly name shown in the message (optional)
 
 weather:
   units: metric           # "metric" (°C, km/h) or "imperial" (°F, mph)

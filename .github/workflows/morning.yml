@@ -2,12 +2,17 @@ name: telegram-morning
 
 on:
   schedule:
-    # Every 2 hours (GitHub cron is UTC; that's fine). Each run checks the local
-    # time in config.yaml's `timezone` (DST-safe) and sends only inside
-    # [send_time, send_time + send_window_minutes], once a day. GitHub can delay
-    # or skip scheduled runs, so keep the window wide enough for 2-3 runs.
-    # Minute 17 avoids GitHub's busy top of the hour. ~12 runs/day ≈ 360 min/month.
-    - cron: "17 */2 * * *"
+    # Two runs each morning. GitHub cron hours are UTC:
+    #   10:05 and 12:05 UTC = 07:05 and 09:05 in Montevideo (UTC-3, no
+    #   daylight saving). For a zone with DST, cover both offsets.
+    # The 07:05 run sends. The 09:05 run is a backup in case GitHub delayed or
+    # skipped the first one; if 07:05 already sent, it sees "already sent
+    # today" and stops in seconds. Minute 5 avoids GitHub's busiest minute
+    # (:00), when scheduled runs are most often delayed or dropped.
+    # 2 runs/day ≈ 60 Actions minutes/month.
+    # If you move the window in config.yaml, move these hours too
+    # (tests/test_core.py checks that they still overlap).
+    - cron: "5 10,12 * * *"
   push:
     # A push that changes the bot or its config only validates config.yaml
     # (--check). It never sends.
@@ -16,6 +21,7 @@ on:
       - ".github/workflows/morning.yml"
       - "config.yaml"
       - "telegram_morning/**"
+      - "tests/**"
       - "poetry.lock"
   workflow_dispatch:
     inputs:
@@ -53,7 +59,13 @@ jobs:
           python-version: "3.11"
           cache: poetry
 
-      - run: poetry install --only main --no-root
+      - run: poetry install --no-root ${{ github.event_name != 'push' && '--only main' || '' }}
+
+      # On push: run the tests too (they check config.yaml and that the cron
+      # hours above still land inside the send window). A failure shows as ❌.
+      - name: Tests
+        if: github.event_name == 'push'
+        run: poetry run python -m pytest -q
 
       - name: Run telegram_morning
         run: |

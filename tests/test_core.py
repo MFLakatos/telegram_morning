@@ -208,3 +208,44 @@ def test_every_roster_character_is_complete():
     for ch in cfg["characters"]:
         assert ch["emoji"] and ch["name"]["es"] and ch["name"]["en"]
         assert ch["persona"]["es"] and ch["persona"]["en"]
+
+
+def _cron_values(field, lo, hi):
+    """Expand one cron field (supports *, a-b, */n, a-b/n and lists)."""
+    out = set()
+    for part in field.split(","):
+        rng, _, step = part.partition("/")
+        step = int(step or 1)
+        if rng == "*":
+            a, b = lo, hi
+        elif "-" in rng:
+            a, b = map(int, rng.split("-"))
+        else:
+            a = b = int(rng)
+        out.update(range(a, b + 1, step))
+    return sorted(out)
+
+
+def test_workflow_schedule_hits_the_send_window_in_winter_and_summer():
+    """The UTC cron hours must put at least two runs inside config.yaml's window."""
+    import yaml
+    from datetime import timedelta
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    wf = yaml.safe_load((root / ".github/workflows/morning.yml").read_text(encoding="utf-8"))
+    triggers = wf.get("on", wf.get(True))
+    cfg = yaml.safe_load((root / "config.yaml").read_text(encoding="utf-8"))
+    tz = ZoneInfo(cfg["timezone"])
+    hh, mm = map(int, cfg["send_time"].split(":"))
+    for cron in [s["cron"] for s in triggers["schedule"]]:
+        minute, hour, dom, month, dow = cron.split()
+        assert (dom, month, dow) == ("*", "*", "*"), "test assumes a daily schedule"
+        for day in (datetime(2026, 1, 15, tzinfo=UTC), datetime(2026, 7, 15, tzinfo=UTC)):
+            hits = 0
+            for h in _cron_values(hour, 0, 23):
+                for m in _cron_values(minute, 0, 59):
+                    local = day.replace(hour=h, minute=m).astimezone(tz)
+                    start = local.replace(hour=hh, minute=mm, second=0, microsecond=0)
+                    if start <= local <= start + timedelta(minutes=cfg["send_window_minutes"]):
+                        hits += 1
+            assert hits >= 2, f"cron '{cron}' has only {hits} run(s) in the window on {day:%B}"
