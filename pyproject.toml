@@ -2,7 +2,7 @@
 name = "telegram-morning"
 version = "1.0.0"
 description = "Daily Telegram weather message in a random character's voice (ES/EN)."
-authors = ["Your Name <you@example.com>"]
+authors = ["Matías Fernández Lakatos"]
 readme = "README.md"
 packages = [{ include = "telegram_morning" }]
 

@@ -1,18 +1,19 @@
 name: telegram-morning
 
+# Triggers
+#   workflow_dispatch: started by an outside timer (cron-job.org) through
+#     GitHub's API at 07:00 and 09:00 local time, or by hand from the Actions
+#     tab. The program checks the local time (config.yaml `timezone`, DST-safe)
+#     and sends only inside [send_time, send_time + send_window_minutes], once
+#     per day. The 09:00 call is a backup and stops in seconds if 07:00 sent.
+#   push: runs the tests and validates config.yaml. Never sends.
+#
+# Why not GitHub's own `schedule:` trigger? It costs nothing to set up, but on
+# a small repo GitHub delayed or silently dropped most scheduled runs. To use it
+# anyway (hours are UTC), add under `on:`
+#   schedule:
+#     - cron: "5 10,12 * * *"
 on:
-  schedule:
-    # Two runs each morning. GitHub cron hours are UTC:
-    #   10:05 and 12:05 UTC = 07:05 and 09:05 in Montevideo (UTC-3, no
-    #   daylight saving). For a zone with DST, cover both offsets.
-    # The 07:05 run sends. The 09:05 run is a backup in case GitHub delayed or
-    # skipped the first one; if 07:05 already sent, it sees "already sent
-    # today" and stops in seconds. Minute 5 avoids GitHub's busiest minute
-    # (:00), when scheduled runs are most often delayed or dropped.
-    # 2 runs/day ≈ 60 Actions minutes/month.
-    # If you move the window in config.yaml, move these hours too
-    # (tests/test_core.py checks that they still overlap).
-    - cron: "5 10,12 * * *"
   push:
     # A push that changes the bot or its config only validates config.yaml
     # (--check). It never sends.

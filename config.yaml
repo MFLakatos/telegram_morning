@@ -10,11 +10,10 @@ timezone: "America/Montevideo"
 # Start of the send window, local wall-clock time (24h "HH:MM") in `timezone`.
 send_time: "07:00"
 
-# GitHub wakes the program at 07:05 and 09:05 Montevideo time (the `cron:`
-# line in .github/workflows/morning.yml, written in UTC). The first run inside
-# [send_time, send_time + send_window_minutes] sends; the 09:05 one then skips.
-# 07:00 + 240 min = may send until 11:00, so a late GitHub run still counts.
-# If you change the window, keep both runs inside it (or edit the cron hours).
+# A timer starts the program (README, "Daily timer": cron-job.org at 07:00 and
+# 09:00). The first run inside [send_time, send_time + send_window_minutes]
+# sends; later runs that day skip. 07:00 + 240 min = may send until 11:00, so a
+# late run still counts. Keep your timer's times inside this window.
 send_window_minutes: 240
 
 # Weather location: give a city (auto-geocoded) OR latitude+longitude.
@@ -47,7 +46,7 @@ llm:
       api_key_env: null         # local Ollama needs no key
     groq:
       base_url: "https://api.groq.com/openai/v1"
-      # Llama models left Groq's free tier on 2026-08-16. Current free options:
+      # Free-tier models change; if you get HTTP 404, pick a current one from
       # https://console.groq.com/docs/models
       model: "openai/gpt-oss-120b"
       api_key_env: GROQ_API_KEY

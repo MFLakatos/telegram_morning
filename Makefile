@@ -14,7 +14,7 @@ setup:             ## First-time setup: Python, deps, and config/.env from templ
 	poetry install
 	@[ -f .env ] || cp .env-example .env
 	@[ -f config.yaml ] || cp config.example.yaml config.yaml
-	@echo ">> Setup done. Now edit .env and config.yaml, then run: make ollama-pull"
+	@echo ">> Setup done. Now edit .env and config.yaml, then try: make dry"
 
 install:           ## Install/refresh Python dependencies
 	poetry install

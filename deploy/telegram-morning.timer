@@ -1,8 +1,8 @@
 [Unit]
-Description=Run telegram-morning every 30 minutes
+Description=Run telegram-morning at 07:00 and 09:00
 
 [Timer]
-OnCalendar=*:0/30
+OnCalendar=*-*-* 07,09:00:00
 Persistent=true
 
 [Install]

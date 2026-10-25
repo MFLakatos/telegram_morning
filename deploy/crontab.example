@@ -1,2 +1,3 @@
-# Run every 30 minutes; the program decides if it's actually time to send.
-*/30 * * * * /Users/matiasfernandezlakatos/Desktop/gh_repos/telegram_morning/run.sh >> /Users/matiasfernandezlakatos/Desktop/gh_repos/telegram_morning/state/cron.log 2>&1
+# Local alternative to the cloud timer. Replace /path/to/telegram_morning (run `pwd` in the repo).
+# Runs at 07:00 and 09:00; the program decides if it's actually time to send.
+0 7,9 * * * /path/to/telegram_morning/run.sh >> /path/to/telegram_morning/state/cron.log 2>&1

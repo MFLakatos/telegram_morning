@@ -7,13 +7,17 @@
   <string>com.telegram-morning</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/matiasfernandezlakatos/Desktop/gh_repos/telegram_morning/run.sh</string>
+    <string>/path/to/telegram_morning/run.sh</string>
   </array>
-  <key>StartInterval</key>
-  <integer>1800</integer>
+  <!-- 07:00 and 09:00 local time; launchd runs a missed job when the Mac wakes -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+  </array>
   <key>StandardOutPath</key>
-  <string>/Users/matiasfernandezlakatos/Desktop/gh_repos/telegram_morning/state/launchd.log</string>
+  <string>/path/to/telegram_morning/state/launchd.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/matiasfernandezlakatos/Desktop/gh_repos/telegram_morning/state/launchd.err</string>
+  <string>/path/to/telegram_morning/state/launchd.err</string>
 </dict>
 </plist>

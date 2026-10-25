@@ -237,6 +237,8 @@ def test_workflow_schedule_hits_the_send_window_in_winter_and_summer():
     cfg = yaml.safe_load((root / "config.yaml").read_text(encoding="utf-8"))
     tz = ZoneInfo(cfg["timezone"])
     hh, mm = map(int, cfg["send_time"].split(":"))
+    if not triggers.get("schedule"):
+        pytest.skip("no GitHub schedule trigger (an outside timer starts the workflow)")
     for cron in [s["cron"] for s in triggers["schedule"]]:
         minute, hour, dom, month, dow = cron.split()
         assert (dom, month, dow) == ("*", "*", "*"), "test assumes a daily schedule"
