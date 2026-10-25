@@ -2,15 +2,15 @@ name: telegram-morning
 
 on:
   schedule:
-    # Wakes up twice an hour. GitHub cron is in UTC, but that doesn't matter:
-    # the program checks the local time in config.yaml's `timezone` (DST-safe)
-    # and only sends inside [send_time, send_time + send_window_minutes].
-    # Minutes 7 and 37 avoid GitHub's busy top-of-the-hour slot, which can
-    # delay runs. Keep send_window_minutes >= 60.
-    - cron: "7,37 * * * *"
+    # Every 2 hours (GitHub cron is UTC; that's fine). Each run checks the local
+    # time in config.yaml's `timezone` (DST-safe) and sends only inside
+    # [send_time, send_time + send_window_minutes], once a day. GitHub can delay
+    # or skip scheduled runs, so keep the window wide enough for 2-3 runs.
+    # Minute 17 avoids GitHub's busy top of the hour. ~12 runs/day ≈ 360 min/month.
+    - cron: "17 */2 * * *"
   push:
-    # Also run when the bot or its config changes. Outside the morning window
-    # this just checks the time and exits; it never sends twice in one day.
+    # A push that changes the bot or its config only validates config.yaml
+    # (--check). It never sends.
     branches: [master, main]
     paths:
       - ".github/workflows/morning.yml"
@@ -20,9 +20,9 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Send a message right now (ignores the time window)"
+        description: "Send a message right now (tick this when testing by hand)"
         type: boolean
-        default: true
+        default: false
       character:
         description: "Character id for this run, e.g. quijote (empty = usual pick)"
         type: string
@@ -55,8 +55,17 @@ jobs:
 
       - run: poetry install --only main --no-root
 
-      - run: poetry run python -m telegram_morning.main ${{ inputs.force && '--force' || '' }} ${CHARACTER:+--character "$CHARACTER"}
+      - name: Run telegram_morning
+        run: |
+          args=()
+          if [ "$EVENT" = "push" ]; then args+=(--check); fi
+          if [ "$FORCE" = "true" ]; then args+=(--force); fi
+          if [ -n "$CHARACTER" ]; then args+=(--character "$CHARACTER"); fi
+          echo "trigger: $EVENT  args: ${args[*]}"
+          poetry run python -m telegram_morning.main "${args[@]}"
         env:
+          EVENT: ${{ github.event_name }}
+          FORCE: ${{ inputs.force }}
           CHARACTER: ${{ inputs.character }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

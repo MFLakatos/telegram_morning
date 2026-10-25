@@ -19,7 +19,7 @@ run on your own machine with a local model (Ollama) if you prefer.
 - [FAQ](#faq)
 
 ## How it works
-A scheduler wakes the program up every ~30 minutes. Each run checks the wall-clock time in your
+GitHub Actions wakes the program up every 2 hours. Each run checks the wall-clock time in your
 configured IANA timezone (winter/summer time handled automatically by Python's `zoneinfo`). If it's
 within `[send_time, send_time + send_window_minutes]` and nothing was sent today, it fetches today's
 weather (Open-Meteo, free, no key), picks the character, asks the LLM to write the message in that
@@ -52,10 +52,22 @@ scheduler tick ─► should_send_now()? ─no─► exit
 4. **Add the secrets to GitHub:** `make github-secrets` (copies them from `.env` with `gh`), or by
    hand in *Settings → Secrets and variables → Actions → New repository secret*:
    `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GROQ_API_KEY`.
-5. **Test it:** repo → *Actions* → *telegram-morning* → *Run workflow*. A message should arrive within
-   a minute. From then on it sends itself every morning.
+5. **Test it:** repo → *Actions* → *telegram-morning* → *Run workflow*, tick *Send a message right
+   now*. A message should arrive within a minute.
+From then on GitHub runs it every 2 hours and it sends the first time it runs inside your window
+(default 04:00–10:00 local).
 
-To change the time, character, city or language later: edit `config.yaml`, commit, push.
+### Timing
+- `.github/workflows/morning.yml` runs at :17 past every even UTC hour (12 runs a day ≈ 360 of the
+  2,000 free Actions minutes a month on a private repo).
+- `send_time` + `send_window_minutes` in `config.yaml` set the local window; the first run inside it
+  sends, later runs that day skip. With the defaults (04:00 + 360) runs land at 05:17, 07:17 and
+  09:17 in Montevideo, so the message usually arrives around 05:20.
+- GitHub can delay scheduled runs or skip some. The wide window gives it three chances a day.
+- If GitHub keeps missing whole mornings, start the workflow from an outside timer instead
+  (e.g. cron-job.org every 2 hours, `POST https://api.github.com/repos/<you>/telegram_morning/actions/workflows/morning.yml/dispatches`
+  with body `{"ref":"master"}`, headers `Authorization: Bearer <fine-grained token with Actions: write>`,
+  `Accept: application/vnd.github+json`).
 
 ## Configure
 All settings live in `config.yaml`; secrets live in `.env` (locally) and GitHub secrets (cloud).
@@ -64,8 +76,8 @@ All settings live in `config.yaml`; secrets live in `.env` (locally) and GitHub 
 |---|---|
 | `language` | `es` or `en` |
 | `timezone` | IANA name, e.g. `America/Montevideo` (DST automatic) |
-| `send_time` | local `HH:MM` to send |
-| `send_window_minutes` | how long after `send_time` a run may still send (keep ≥ 60 on GitHub) |
+| `send_time` | local `HH:MM` when the send window opens |
+| `send_window_minutes` | how long the window stays open (keep ≥ 240 with the 2-hour schedule) |
 | `location.city` / `latitude`+`longitude` | where to get weather |
 | `weather.units` | `metric` or `imperial` |
 | `llm.provider` | active provider key (`groq`, `openai`, `openrouter`, `ollama`) |
@@ -132,14 +144,15 @@ The machine must be awake at send time.
   retired model name — check <https://console.groq.com/docs/models>.
 - **Telegram 400 "chat not found":** wrong chat id, or you never sent the bot a message first.
 - **Telegram 400 "can't parse entities":** set `telegram.parse_mode: "none"`.
-- **Message arrives a bit late:** GitHub's scheduled runs can lag 5–30 minutes. Runs fire at :07 and
-  :37 past each hour, so a 07:00 send usually lands around 07:07–07:20.
+- **No message in the morning:** open *Actions*. No scheduled runs inside your window → GitHub
+  skipped them (see *Timing* above for the outside-timer option). Runs that say
+  "Skipping: Not in window" → check `send_time`/`send_window_minutes`/`timezone` in `config.yaml`.
 - **`make` says "missing separator":** a Makefile recipe used spaces instead of a tab.
 
 ## FAQ
 **Does my computer need to be on?** Not with GitHub Actions + a cloud provider (the default).
 **Is it free?** Open-Meteo and Groq's free tier are free. GitHub Actions is free for public repos;
-private repos get 2,000 minutes/month and this uses roughly 1,500 (48 short runs a day).
+private repos get 2,000 minutes/month and this uses roughly 360 (12 short runs a day).
 **Will it send twice?** No — `state/last_sent.json` (kept in the Actions cache on GitHub) enforces
 one message per local day.
 **Does winter/summer time matter?** No. `send_time` is always local wall-clock time in `timezone`.

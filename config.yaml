@@ -7,13 +7,15 @@ language: es
 # Examples: "America/Montevideo", "Europe/Madrid", "America/New_York"
 timezone: "America/Montevideo"
 
-# Local wall-clock time to send (24h "HH:MM"), interpreted in `timezone` above.
-send_time: "07:00"
+# Start of the send window, local wall-clock time (24h "HH:MM") in `timezone`.
+send_time: "04:00"
 
-# The scheduler fires often; the program sends once when local time is within
-# [send_time, send_time + send_window_minutes]. Keep this >= your scheduler
-# interval (and >= expected GitHub Actions delay, so >= 60 for the cloud path).
-send_window_minutes: 60
+# GitHub wakes the program every 2 hours (at :17 past even UTC hours, i.e.
+# 05:17, 07:17, 09:17 in Montevideo). The first run inside
+# [send_time, send_time + send_window_minutes] sends; later ones that day skip.
+# 04:00 + 360 min = sends between 04:00 and 10:00. Keep the window >= 240 so a
+# skipped or late GitHub run still leaves another chance.
+send_window_minutes: 360
 
 # Weather location: give a city (auto-geocoded) OR latitude+longitude.
 location:
